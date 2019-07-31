@@ -3,6 +3,9 @@ library("dplyr", lib.loc="~/R/win-library/3.5")
 library("caret", lib.loc="~/R/win-library/3.5")
 library("e1071", lib.loc="~/R/win-library/3.5")
 
+dfinexc0307<-dfin%>% filter (is.na(exc0307)) # this has to be fixed to also exclude 2 time series
+dfrg3<-dfinexc0307[!is.na(dfinexc0307$ecoscombined),]
+
 set.seed(12358)
 dfrg3sub<-dfrg3 %>% filter(!is.na(pe03_all) & !is.na(correct) & !is.na(XericRatio)) %>% select (pe03_all,correct,XericRatio)
 dfrg3sub$faccor<-as.factor(dfrg3sub$correct)
