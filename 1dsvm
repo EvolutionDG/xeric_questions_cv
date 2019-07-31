@@ -1,0 +1,38 @@
+library("plyr", lib.loc="~/R/win-library/3.5") # load before deplyr
+library("dplyr", lib.loc="~/R/win-library/3.5")
+library("caret", lib.loc="~/R/win-library/3.5")
+library("e1071", lib.loc="~/R/win-library/3.5")
+
+set.seed(12358)
+dfrg3sub<-dfrg3 %>% filter(!is.na(pe03_all) & !is.na(correct) & !is.na(XericRatio)) %>% select (pe03_all,correct,XericRatio)
+dfrg3sub$faccor<-as.factor(dfrg3sub$correct)
+
+xy<- dfrg3sub # to be replaced with data to undergo LOOCV
+n_train<-nrow(xy)
+loocv_pred <- matrix(NA, nrow = n_train)
+loocv_threshold<- matrix(NA, nrow = n_train)
+fdata<-data.frame(seq(-6,0,0.01))
+colnames(fdata)[1]<-"pe03_all"
+
+
+for (k in 1:n_train) {
+  train_xy <- xy[-k, ]
+  test_xy <- xy[k, ]
+  # model-fitting on train goes here
+  tune.out3a <- tune(svm, faccor ~ pe03_all, data=train_xy, kernel='linear', ranges=list(cost=c(0.001,0.01,0.1,1,5,10,100)))
+  summary(tune.out3a)
+  # model prediction on test goes here   
+  yhat3a <- predict(tune.out3a$best.model, test_xy)
+  loocv_pred[k]<-yhat3a
+  fdatapred <- predict(tune.out3a$best.model, fdata)
+  fdatapredf<-data.frame(fdatapred)
+  fdatapredfc<-data.frame(fdata,fdatapredf)
+  answer<-fdatapredfc %>% filter (fdatapred == 0)
+  loocv_threshold[k]<-answer$pe03_all[nrow(answer)]
+  cat(k)
+}
+
+summary(loocv_threshold)
+loocv_predfac1<-factor(loocv_pred)
+loocv_predfac2<-revalue(loocv_predfac1, c("1"="0", "2"="1"))
+confusionMatrix(loocv_predfac2,xy$faccor)
